@@ -59,11 +59,6 @@
             <artifactId>msal4j</artifactId>
             <version>${msal4j.version}</version>
         </dependency>
-        <!-- Caffeine Cache for Token Caching -->
-        <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
-        </dependency>
     </dependencies>
     <build>
         <plugins>

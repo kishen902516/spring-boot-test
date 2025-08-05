@@ -1,7 +1,5 @@
 package com.weather.api.service;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.microsoft.aad.msal4j.*;
 import com.weather.api.config.auth.MsalConfiguration;
 import org.slf4j.Logger;
@@ -10,26 +8,19 @@ import org.springframework.stereotype.Service;
 
 import java.net.MalformedURLException;
 import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class MsalTokenService {
     
     private static final Logger logger = LoggerFactory.getLogger(MsalTokenService.class);
-    private static final String CACHE_KEY = "bearer_token";
     
     private final MsalConfiguration msalConfiguration;
-    private final Cache<String, String> tokenCache;
     private ConfidentialClientApplication clientApplication;
     
     public MsalTokenService(MsalConfiguration msalConfiguration) {
         this.msalConfiguration = msalConfiguration;
-        this.tokenCache = Caffeine.newBuilder()
-                .expireAfterWrite(55, TimeUnit.MINUTES) // Tokens typically expire in 60 minutes
-                .maximumSize(10)
-                .build();
-        
         initializeClientApplication();
     }
     
@@ -50,30 +41,23 @@ public class MsalTokenService {
     }
     
     public String getAccessToken() {
-        // Check cache first
-        String cachedToken = tokenCache.getIfPresent(CACHE_KEY);
-        if (cachedToken != null) {
-            logger.debug("Returning cached token");
-            return cachedToken;
-        }
+        logger.debug("Attempting to acquire access token");
         
-        // If not in cache, acquire new token
-        logger.info("Acquiring new access token from Azure AD");
         try {
-            ClientCredentialParameters parameters = ClientCredentialParameters.builder(
-                    Collections.singleton(msalConfiguration.getScope()))
-                    .build();
+            Set<String> scopes = Collections.singleton(msalConfiguration.getScope());
             
-            CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(parameters);
-            IAuthenticationResult result = future.get();
+            // First, try to acquire token silently from cache
+            IAuthenticationResult result = acquireTokenSilently(scopes);
             
-            String accessToken = result.accessToken();
+            if (result == null) {
+                // If silent acquisition fails, acquire new token
+                logger.info("No cached token found, acquiring new token from Azure AD");
+                result = acquireTokenInteractively(scopes);
+            } else {
+                logger.debug("Successfully acquired token from cache");
+            }
             
-            // Cache the token
-            tokenCache.put(CACHE_KEY, accessToken);
-            logger.info("Successfully acquired and cached new access token");
-            
-            return accessToken;
+            return result.accessToken();
             
         } catch (Exception e) {
             logger.error("Failed to acquire access token", e);
@@ -81,8 +65,50 @@ public class MsalTokenService {
         }
     }
     
+    private IAuthenticationResult acquireTokenSilently(Set<String> scopes) {
+        try {
+            // Get accounts from cache
+            Set<IAccount> accounts = clientApplication.getAccounts().join();
+            
+            if (!accounts.isEmpty()) {
+                // Use the first account (for client credentials flow, there's typically only one)
+                SilentParameters silentParameters = SilentParameters.builder(
+                        scopes,
+                        accounts.iterator().next())
+                        .build();
+                
+                CompletableFuture<IAuthenticationResult> future = clientApplication.acquireTokenSilently(silentParameters);
+                return future.join();
+            }
+        } catch (Exception e) {
+            logger.debug("Silent token acquisition failed, will acquire new token", e);
+        }
+        
+        return null;
+    }
+    
+    private IAuthenticationResult acquireTokenInteractively(Set<String> scopes) throws Exception {
+        ClientCredentialParameters parameters = ClientCredentialParameters.builder(scopes)
+                .build();
+        
+        CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(parameters);
+        IAuthenticationResult result = future.get();
+        
+        logger.info("Successfully acquired new access token");
+        return result;
+    }
+    
     public void clearCache() {
-        tokenCache.invalidateAll();
-        logger.info("Token cache cleared");
+        // MSAL4J doesn't provide a direct way to clear the entire cache,
+        // but we can remove accounts which will force new token acquisition
+        try {
+            Set<IAccount> accounts = clientApplication.getAccounts().join();
+            for (IAccount account : accounts) {
+                clientApplication.removeAccount(account).join();
+            }
+            logger.info("Token cache cleared");
+        } catch (Exception e) {
+            logger.error("Failed to clear token cache", e);
+        }
     }
 }
