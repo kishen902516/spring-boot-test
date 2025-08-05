@@ -1,0 +1,9 @@
+com\weather\api\WeatherApiApplication.class
+com\weather\api\model\WeatherResponse$Main.class
+com\weather\api\controller\WeatherController.class
+com\weather\api\model\WeatherResponse.class
+com\weather\api\model\WeatherResponse$Weather.class
+com\weather\api\service\WeatherService.class
+META-INF\spring-configuration-metadata.json
+com\weather\api\config\WeatherApiConfig.class
+com\weather\api\model\WeatherData.class

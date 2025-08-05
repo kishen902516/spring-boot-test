@@ -1,0 +1,57 @@
+{
+  "groups": [
+    {
+      "name": "msal",
+      "type": "com.weather.api.config.auth.MsalConfiguration",
+      "sourceType": "com.weather.api.config.auth.MsalConfiguration"
+    },
+    {
+      "name": "weather.api",
+      "type": "com.weather.api.config.WeatherApiConfig",
+      "sourceType": "com.weather.api.config.WeatherApiConfig"
+    }
+  ],
+  "properties": [
+    {
+      "name": "msal.authority",
+      "type": "java.lang.String",
+      "sourceType": "com.weather.api.config.auth.MsalConfiguration"
+    },
+    {
+      "name": "msal.client-id",
+      "type": "java.lang.String",
+      "sourceType": "com.weather.api.config.auth.MsalConfiguration"
+    },
+    {
+      "name": "msal.client-secret",
+      "type": "java.lang.String",
+      "sourceType": "com.weather.api.config.auth.MsalConfiguration"
+    },
+    {
+      "name": "msal.scope",
+      "type": "java.lang.String",
+      "sourceType": "com.weather.api.config.auth.MsalConfiguration"
+    },
+    {
+      "name": "msal.tenant-id",
+      "type": "java.lang.String",
+      "sourceType": "com.weather.api.config.auth.MsalConfiguration"
+    },
+    {
+      "name": "weather.api.base-url",
+      "type": "java.lang.String",
+      "sourceType": "com.weather.api.config.WeatherApiConfig"
+    },
+    {
+      "name": "weather.api.key",
+      "type": "java.lang.String",
+      "sourceType": "com.weather.api.config.WeatherApiConfig"
+    },
+    {
+      "name": "weather.api.units",
+      "type": "java.lang.String",
+      "sourceType": "com.weather.api.config.WeatherApiConfig"
+    }
+  ],
+  "hints": []
+}
